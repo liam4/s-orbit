@@ -1,4 +1,5 @@
 /* jshint ignore:start */
+'use strict'
 
 window.Sorbit = (function Sorbit(name) {
   'use strict'
@@ -6,51 +7,34 @@ window.Sorbit = (function Sorbit(name) {
   let ext = {
     name: name,
     _shutdown: function() {},
-    status: ['Green', 'Ready'],
+    status: { light: 'Green', msg: 'Ready'},
     _getStatus: function() {
-      let status = ext.status
-      let light = status[0]
+      let light = ext.status.light
 
-      switch(status[0].toLowerCase()) {
+      switch(light.toLowerCase()) {
         case 'red':
-          light = 0
-        break
-
         case 'err':
           light = 0
         break
 
         case 'yellow':
-          light = 1
-        break
-
         case 'amber':
-          light = 1
-        break
-
         case 'orange':
-          light = 1
-        break
-
         case 'warn':
           light = 1
         break
 
         case 'green':
-          light = 2
-        break
-
         case 'ok':
           light = 2
         break
       }
 
-      return { status: light, msg: status[1] }
+      return { status: light, msg: ext.status.msg }
     },
 
     descriptor: {
-      blocks: [],
-      menus: {}
+      blocks: [], menus: {}
     }
   }
 
@@ -60,7 +44,7 @@ window.Sorbit = (function Sorbit(name) {
     let uniqName = 'block_' + block.replace(' ', '_')
     while(ext[uniqName]) uniqName += '_'
 
-    // create block descrip'Hello!'tor
+    // create block descriptor
     let blockDesc = [
       type,
       block,
@@ -78,62 +62,61 @@ window.Sorbit = (function Sorbit(name) {
     // add block callback
     ext[uniqName] = callback
   }
+ 
+  // returns a function that helps with creating a block
+  let makeBlockFunction = function(fn) {
+    return function() {
+      let args = Array.prototype.slice.call(arguments)
+      let block = {}
+
+      if(args[0] instanceof Object) {
+        block = args[0]
+        if(!(block.defaults instanceof Array)) block.defaults = [block.defaults]
+      } else {
+        block.name     = args[0],
+        block.defaults = args.slice(1, args.length - 1) || [],
+        block.code     = args[args.length - 1]
+      }
+  
+      return fn(block)
+    }
+  }
 
   // chainable methods
   let chain = {
     block: {
-      stack: function(name) {
-        let args = [].splice.call(arguments, 1)
-        let callback = args.pop()
-
-        addBlock(' ', name, args, callback)
-
+      stack: makeBlockFunction(function(block) {
+        addBlock(' ', block.name, block.defaults, block.code)
         return chain
-      },
+      }),
 
-      hat: function(name) {
-        let args = [].splice.call(arguments, 1)
-        let callback = args.pop()
-
-        addBlock('h', name, args, callback)
-
+      hat: makeBlockFunction(function(block) {
+        addBlock('h', block.name, block.defaults, block.code)
         return chain
-      },
+      }),
 
-      reporter: function(name) {
-        let args = [].splice.call(arguments, 1)
-        let callback = args.pop()
-
-        addBlock('r', name, args, callback)
-
+      reporter: makeBlockFunction(function(block) {
+        addBlock('r', block.name, block.defaults, block.code)
         return chain
-      },
-
-      hat: function(name) {
-        let args = [].splice.call(arguments, 1)
-        let callback = args.pop()
-
-        addBlock('h', name, args, callback)
-
-        return chain
-      }
+      })
     },
 
+    menu: {
+
+    },
+  
     url: function(url) {
       ext.descriptor.url = url.toString()
-
       return chain
     },
 
     status: function(status) {
       ext.status = status
-
       return chain
     },
 
     shutdown: function(fn) {
       ext._shutdown = fn
-
       return chain
     },
 
@@ -141,7 +124,7 @@ window.Sorbit = (function Sorbit(name) {
       ScratchExtensions.unregister(ext.name)
       ScratchExtensions.register(ext.name, ext.descriptor, ext)
 
-      console.log(ext)
+      console.log('Loaded SOrbit extension:', ext)
 
       chain.injected = true
       return chain

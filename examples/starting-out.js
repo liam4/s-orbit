@@ -1,12 +1,12 @@
-SOrbit('My SOrbit Extension', function(ext) {
-  ext.addBlock({
-    name: 'alert %s',
-    type: ' ',
-    code: function(s) {
-      window.alert(s)
-    },
-    defaults: 'Hello, World!'
-  })
+'use strict'
 
-  ext.register()
-})
+Sorbit('Sorbit Example')
+  .block.stack(           // add stack block
+    'alert %s',           // name of block
+    'Hello!',             // any default parameters
+
+    function(something) { // callback
+      alert(something)    // ...
+    }                     // ...
+  )
+.inject()
